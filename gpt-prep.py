@@ -2,6 +2,7 @@ import os
 import glob
 import argparse
 import logging
+import torch
 import fitz  # PyMuPDF for text extraction
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
@@ -68,16 +69,37 @@ def chunk_text(text, chunk_size=1000, chunk_overlap=100):
     return chunks
 
 # -------------------------------
-# Step 4: Create Embeddings and Build FAISS Index
+# Step 4: Create Embeddings and Build FAISS Index with GPU Auto-detection
 # -------------------------------
 def build_index(chunks, model_name="all-MiniLM-L6-v2"):
-    """Generate embeddings for chunks and build a FAISS index."""
-    logging.info("Generating embeddings and building FAISS index.")
+    """Generate embeddings for chunks and build a FAISS index with GPU support if available."""
+    # Auto-detect device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logging.info(f"Using device: {device}")
+    
+    # Load the embedding model and move to appropriate device
     model = SentenceTransformer(model_name)
-    embeddings = model.encode(chunks)
+    model = model.to(device)
+    
+    # Generate embeddings (they are generated on the device specified by the model)
+    embeddings = model.encode(chunks, show_progress_bar=True)
+    embeddings = np.array(embeddings)
+    
     dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index.add(np.array(embeddings))
+    index_cpu = faiss.IndexFlatL2(dimension)
+    
+    if device == "cuda":
+        try:
+            res = faiss.StandardGpuResources()
+            index = faiss.index_cpu_to_gpu(res, 0, index_cpu)
+            logging.info("FAISS index moved to GPU.")
+        except Exception as e:
+            logging.warning(f"Failed to use GPU for FAISS index due to: {e}. Falling back to CPU.")
+            index = index_cpu
+    else:
+        index = index_cpu
+
+    index.add(embeddings)
     return index, model, embeddings
 
 # -------------------------------
@@ -85,6 +107,9 @@ def build_index(chunks, model_name="all-MiniLM-L6-v2"):
 # -------------------------------
 def save_pipeline(index, chunks, index_filename="research_index.index", chunks_filename="chunks.pkl"):
     """Save the FAISS index and text chunks to disk."""
+    # If the index is on GPU, move it back to CPU before saving
+    if faiss.get_num_gpus() > 0 and hasattr(index, 'index'):
+        index = faiss.index_gpu_to_cpu(index)
     faiss.write_index(index, index_filename)
     with open(chunks_filename, "wb") as f:
         pickle.dump(chunks, f)
@@ -117,9 +142,13 @@ def query_pipeline(query, index, chunks, model, top_k=3):
 # Main Function to Run the Pipeline
 # -------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Process PDFs for GPT context retrieval.")
+    parser = argparse.ArgumentParser(
+        description="Process PDFs for GPT context retrieval and build a FAISS index for semantic search.",
+        epilog="Example usage: python gpt-prep.py -i ~/folder -o results.txt --no-query"
+    )
     parser.add_argument("-i", "--input_dir", required=True, help="Input directory containing PDF files.")
     parser.add_argument("-o", "--output_file", default="query_results.txt", help="File to save query results.")
+    parser.add_argument("--no-query", action="store_true", help="Process PDFs and build the index without entering the query loop.")
     args = parser.parse_args()
 
     setup_logging()  # Initialise logging
@@ -141,18 +170,21 @@ def main():
     logging.info("Saving pipeline data...")
     save_pipeline(index, chunks)
 
-    # Query loop: Enter a query and get the context, then write results to a file
-    logging.info("Ready to query your documents!")
-    with open(args.output_file, "w", encoding="utf-8") as f_out:
-        while True:
-            query = input("\nEnter your query (or 'exit' to quit): ")
-            if query.lower() == 'exit':
-                break
-            context = query_pipeline(query, index, chunks, model)
-            output = f"\n--- Query: {query} ---\n--- Retrieved Context ---\n{context}\n"
-            f_out.write(output)
-            f_out.flush()  # Write progress to file immediately
-            logging.info(f"Query processed. Results written to {args.output_file}")
+    if not args.no_query:
+        # Query loop: Enter a query and get the context, then write results to a file
+        logging.info("Ready to query your documents!")
+        with open(args.output_file, "w", encoding="utf-8") as f_out:
+            while True:
+                query = input("\nEnter your query (or 'exit' to quit): ")
+                if query.lower() == 'exit':
+                    break
+                context = query_pipeline(query, index, chunks, model)
+                output = f"\n--- Query: {query} ---\n--- Retrieved Context ---\n{context}\n"
+                f_out.write(output)
+                f_out.flush()  # Write progress to file immediately
+                logging.info(f"Query processed. Results written to {args.output_file}")
+    else:
+        logging.info("Query loop skipped as per '--no-query' flag.")
 
 if __name__ == "__main__":
     main()
