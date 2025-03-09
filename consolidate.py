@@ -5,6 +5,8 @@ import re
 import fitz  # PyMuPDF for text extraction
 from pdf2image import convert_from_path
 import pytesseract
+from clean_filters import clean_text # Not in SCR repo as it's specific
+
 
 # -------------------------------
 # Logging Setup
@@ -32,36 +34,6 @@ def load_garbage_patterns(cleaning_file):
                 if pattern:
                     patterns.append(pattern.lower())
     return patterns
-
-# -------------------------------
-# Clean Extracted Text
-# -------------------------------
-def clean_text(text, extra_patterns=None):
-    """
-    Remove boilerplate and unwanted lines such as copyright notices,
-    headers, footers, or 'prepared for/by' information.
-    """
-    # Default garbage keywords
-    garbage_keywords = [
-        "copyright", "©", "prepared for", "prepared by", "confidential", "all rights reserved"
-    ]
-    # Add extra patterns if provided
-    if extra_patterns:
-        garbage_keywords.extend(extra_patterns)
-    
-    cleaned_lines = []
-    for line in text.splitlines():
-        # Remove lines that only contain dashes, underscores, etc.
-        if re.match(r"^\s*[-_=]+\s*$", line):
-            continue
-        # Skip lines that are too short
-        if len(line.strip()) < 3:
-            continue
-        # Remove lines containing any garbage keywords
-        if any(keyword in line.lower() for keyword in garbage_keywords):
-            continue
-        cleaned_lines.append(line)
-    return "\n".join(cleaned_lines)
 
 # -------------------------------
 # Extract Text from a PDF (with OCR fallback)

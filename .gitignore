@@ -5,3 +5,4 @@ chunks.pkl
 consolidate*.txt
 consolidate.log
 garbage.txt
+clean_filters.py
