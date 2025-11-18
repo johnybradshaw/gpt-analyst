@@ -1,0 +1,19 @@
+# Core PDF processing
+PyMuPDF>=1.25.3
+pdf2image>=1.17.0
+pdfplumber>=0.11.5
+pytesseract>=0.3.13
+
+# LangChain for text splitting
+langchain>=1.0.7
+langchain-text-splitters>=1.0.0
+
+# Sentence transformers and embeddings
+sentence-transformers>=5.1.2
+torch>=2.8.0
+
+# FAISS for vector search
+faiss-cpu>=1.13.0
+
+# Streamlit (if used for UI)
+streamlit>=1.51.0
