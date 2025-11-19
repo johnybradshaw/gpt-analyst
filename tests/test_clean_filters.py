@@ -1,6 +1,7 @@
 """Tests for clean_filters module."""
 
 import pytest
+
 from clean_filters import clean_text, remove_headers_footers
 
 

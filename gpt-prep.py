@@ -1,14 +1,15 @@
-import os
-import glob
 import argparse
+import glob
 import logging
-import torch
+import os
+import pickle
+
+import faiss
 import fitz  # PyMuPDF for text extraction
+import numpy as np
+import torch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-import pickle
 
 
 # -------------------------------

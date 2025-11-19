@@ -1,10 +1,12 @@
-import os
 import argparse
 import logging
+import os
 import re
+
 import fitz  # PyMuPDF for text extraction
-from pdf2image import convert_from_path
 import pytesseract
+from pdf2image import convert_from_path
+
 from clean_filters import clean_text  # Not in SCR repo as it's specific
 
 
