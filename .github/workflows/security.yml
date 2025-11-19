@@ -13,6 +13,8 @@ on:
 jobs:
   bandit:
     name: Bandit Security Scan
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +43,8 @@ jobs:
 
   safety:
     name: Safety Dependency Check
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
