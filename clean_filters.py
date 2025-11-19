@@ -24,36 +24,39 @@ def clean_text(text: str, extra_patterns: Optional[List[str]] = None) -> str:
 
     # Remove common PDF artifacts
     # Remove excessive whitespace
-    text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)
+    text = re.sub(r"\n\s*\n\s*\n", "\n\n", text)
 
     # Remove page numbers (common patterns)
-    text = re.sub(r'\n\s*\d+\s*\n', '\n', text)
+    text = re.sub(r"\n\s*\d+\s*\n", "\n", text)
 
     # Remove isolated single characters
-    text = re.sub(r'\n\s*[a-zA-Z]\s*\n', '\n', text)
+    text = re.sub(r"\n\s*[a-zA-Z]\s*\n", "\n", text)
 
     # Remove excessive spaces
-    text = re.sub(r' +', ' ', text)
+    text = re.sub(r" +", " ", text)
 
     # Remove common header/footer artifacts
-    text = re.sub(r'(\n|^)([A-Z\s]{2,})\s*\d+\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r"(\n|^)([A-Z\s]{2,})\s*\d+\s*$", "", text, flags=re.MULTILINE)
 
     # Apply extra patterns if provided
     if extra_patterns:
         for pattern in extra_patterns:
             if pattern:
                 # Case-insensitive removal of extra patterns
-                text = re.sub(re.escape(pattern), '', text, flags=re.IGNORECASE)
+                text = re.sub(re.escape(pattern), "", text, flags=re.IGNORECASE)
 
     # Final cleanup: normalize whitespace
-    text = re.sub(r'\n\n\n+', '\n\n', text)
+    text = re.sub(r"\n\n\n+", "\n\n", text)
     text = text.strip()
 
     return text
 
 
-def remove_headers_footers(text: str, header_patterns: Optional[List[str]] = None,
-                           footer_patterns: Optional[List[str]] = None) -> str:
+def remove_headers_footers(
+    text: str,
+    header_patterns: Optional[List[str]] = None,
+    footer_patterns: Optional[List[str]] = None,
+) -> str:
     """
     Remove common headers and footers from text.
 
@@ -67,10 +70,10 @@ def remove_headers_footers(text: str, header_patterns: Optional[List[str]] = Non
     """
     if header_patterns:
         for pattern in header_patterns:
-            text = re.sub(pattern, '', text, flags=re.MULTILINE | re.IGNORECASE)
+            text = re.sub(pattern, "", text, flags=re.MULTILINE | re.IGNORECASE)
 
     if footer_patterns:
         for pattern in footer_patterns:
-            text = re.sub(pattern, '', text, flags=re.MULTILINE | re.IGNORECASE)
+            text = re.sub(pattern, "", text, flags=re.MULTILINE | re.IGNORECASE)
 
     return text
